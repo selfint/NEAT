@@ -16,7 +16,7 @@ class Node(object):
 
         This function builds a Node object, and gives it an innovation number.
         """
-        super(Node, self).__init__(self)
+        super(Node, self).__init__()
         
         # NEAT algorithm
         self.innovation_number = innovation_number

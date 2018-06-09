@@ -14,7 +14,7 @@ NETWORK_INPUT = 0
 class Neat(object):
 
     def __init__(self, inputs, outputs):
-        super(Neat, self).__init__(self)
+        super(Neat, self).__init__()
         self.inputs = inputs
         self.outputs = outputs
         self.innovations = {}
@@ -23,10 +23,18 @@ class Neat(object):
         self.input_nodes = []
         self.output_nodes = []
 
-        # Genearte network nodes
+        # Generate network nodes
+        ## Input Nodes
         for i in xrange(self.inputs):
             new_node = Node(i)
             self.innovations[i] = new_node
+            self.nodes.append(new_node)
+            self.input_nodes.append(new_node)
+        
+        ## Output Nodes
+        for i in xrange(self.outputs):
+            new_node = Node(i + self.inputs)
+            self.innovations[i + self.inputs] = new_node
             self.nodes.append(new_node)
             self.input_nodes.append(new_node)
     
@@ -40,3 +48,7 @@ class Neat(object):
     def set_input(self, inputs):
         for node, net_input in self.inputs, inputs:
             node.inputs[NETWORK_INPUT] = net_input
+
+if __name__ == '__main__':
+    print 'TESTING NEAT.py FILE'
+    n = Neat(4, 5)

@@ -58,5 +58,5 @@ Connection:
     innovation, only if the parent with the innovation has the higher fitness (Randomly
     determined if both fitnesses are identical).
     
-    If both parents have the same innovation the child randomly inherints the innovation.
+    If both parents have the same innovation the child 
 """
