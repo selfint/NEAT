@@ -5,7 +5,6 @@
 
 from node import InputNode, HiddenNode, OutputNode
 from random import random, choice
-from typing import NamedTuple
 from typing import Tuple
 
 
@@ -32,9 +31,12 @@ class Dna:
         self.inputs = inputs
         self.outputs = outputs
         self.weight_range = weight_range
+
+        # Generate input and output nodes
         self.node_gene = [InputNode(node_number, 0) if node_number < self.inputs else OutputNode(node_number, 1)
                           for node_number in range(self.inputs + self.outputs)]
 
+        # Fully connect input and output genes
         self.innovation_gene = []
         for input_node in self.node_gene[:self.inputs]:
             for output_node in self.node_gene[-self.outputs:]:

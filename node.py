@@ -36,6 +36,9 @@ class HiddenNode:
     def __repr__(self):
         return STRING.format(self.name(), self.number)
 
+    def __str__(self):
+        return repr(self)
+
     def name(self) -> str:
         """
         Returns the name of the class.
@@ -47,6 +50,9 @@ class HiddenNode:
 class InputNode(HiddenNode):
 
     def __init__(self, number: int, layer: int):
+
+        # The lambda function replaces the activation function so that the output of an input node
+        # is only the sum of its inputs, without activation.
         super(InputNode, self).__init__(number, layer, lambda x: x)
 
 
