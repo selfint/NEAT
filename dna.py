@@ -9,13 +9,13 @@ from typing import NamedTuple
 from typing import Tuple
 
 
-class Innovation(NamedTuple):
+class Innovation:
 
     def __init__(self, number: int, src_number: int, dst_number: int, weight: float, enabled: bool, forward: bool):
-        super(Innovation, self).__init__('Innovation')
-        self.number = number
-        self.src_number = src_number
-        self.dst_number = dst_number
+        super(Innovation, self).__init__()
+        self.number = None if number == -1 else number
+        self.src_number = None if src_number == -1 else src_number
+        self.dst_number = None if dst_number == -1 else dst_number
         self.weight = weight
         self.enabled = enabled
         self.forward = forward
