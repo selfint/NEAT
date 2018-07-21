@@ -4,10 +4,11 @@
 
 # Graphic Imports
 from graphviz import Digraph
+from typing import Union
 
 # Project Imports
 from dna import Dna, Innovation
-from node import HiddenNode
+from node import HiddenNode, InputNode, OutputNode
 
 # Constants
 RENDER_FILE = r'renders/neat-structure.gv'
@@ -15,16 +16,17 @@ RENDER_FILE = r'renders/neat-structure.gv'
 
 class Network:
 
-    def __init__(self, inputs: int, outputs: int, weight_range: int):
+    def __init__(self, inputs: int, outputs: int, weight_range: int, dna: Union[None, Dna] = None):
         self.inputs = inputs
         self.outputs = outputs
         self.weight_range = weight_range
-        self.dna = Dna(self.inputs, self.outputs, self.weight_range)
+        self.dna = dna if dna else Dna(self.inputs, self.outputs, self.weight_range)
+        self.fitness = 0
         self.nodes = self.dna.node_gene
         self.connections = self.dna.innovation_gene
-        self.input_nodes = self.dna.node_gene[:self.inputs]
-        self.output_nodes = self.dna.node_gene[-self.outputs:]
-        self.layers = [self.input_nodes, self.output_nodes]
+        self.input_nodes = [node for node in self.nodes if type(node) is InputNode]
+        self.output_nodes = [node for node in self.nodes if type(node) is OutputNode]
+        self.layers = self.set_layers()
 
     def get_output(self, inputs: list) -> list:
         """
@@ -160,6 +162,36 @@ class Network:
                 innovation, = mutation
                 self.add_connection(innovation)
 
+    def crossover(self, mate: 'Network') -> 'Network':
+        """
+        Performs crossover with another network.
+        :param mate: Mate network to perform crossover with
+        :return: Child network
+        """
+        fitter_network = self if self.fitness > mate.fitness else mate if self.fitness < mate.fitness else None
+        fitter_dna = fitter_network.dna if fitter_network else None
+        child_dna = self.dna.crossover(mate.dna, fitter_dna)
+        child = Network(self.inputs, self.outputs, self.weight_range, child_dna)
+        return child
+
+    def set_layers(self):
+        """
+        Set each node in its proper layer.
+        :return: Sorted layers.
+        """
+        layers = {}
+        for node in self.nodes:
+            if node.layer in layers:
+                layers[node.layer].append(node)
+            else:
+                layers[node.layer] = [node]
+
+        sorted_layers = [[node for node in layers[layer]] for layer in sorted(layers.keys())]
+        for layer in range(len(sorted_layers)):
+            for node in sorted_layers[layer]:
+                node.layer = layer
+        return sorted_layers
+
     def render(self, view: bool = True) -> None:
         """
         Renders the network in 2D.
@@ -168,12 +200,12 @@ class Network:
         """
 
         # TODO find a way to force layers to a certain rank.
-
         network_graph = Digraph(comment="NEAT structure", strict=True, graph_attr={"rankdir": "LR",
                                                                                    "splines": None})
 
         # Generate layers
         for layer in range(len(self.layers)):
+            print(self.layers[layer])
             with network_graph.subgraph(name=str("Layer {}".format(layer))) as graph_layer:
                 graph_layer.attr(rank='same')
                 color = "green" if layer == 0 else "yellow" if layer == (len(self.layers)-1) else "lightgrey"
@@ -240,23 +272,30 @@ def do_mutations(network: Network, g_innovation_number, g_node_number):
     c_mutations, g_innovation_number, g_node_number = configure_mutation(network.mutate(1, 1, 0, 0),
                                                                          g_innovation_number, g_node_number)
     for c_mutation in c_mutations:
-        network_test.apply_mutation([c_mutation])
+        network.apply_mutation([c_mutation])
     return g_innovation_number, g_node_number
 
 
 if __name__ == '__main__':
     print('Testing Network')
     network_test = Network(2, 3, 2)
+    network_mate = Network(2, 3, 2)
     global_innovation_number = len(network_test.connections)
     global_node_number = len(network_test.nodes)
 
     # Test mutations
-    for iteration in range(1):
+    for iteration in range(2):
         global_innovation_number, global_node_number = do_mutations(network_test, global_innovation_number,
                                                                     global_node_number)
-
+    for iteration in range(2):
+        global_innovation_number, global_node_number = do_mutations(network_mate, global_innovation_number,
+                                                                    global_node_number)
     # Test render
-    if input("Render? (y/n) ") == 'y':
+    if False and input("Render? (y/n) ") == 'y':
         network_test.render()
 
-    print("Network output for (0, 1): {}".format(network_test.get_output([0, 1])))
+    child = network_test.crossover(network_mate)
+
+    # Test crossover
+    if True or input("Render? (y/n) ") == 'y':
+        child.render()
