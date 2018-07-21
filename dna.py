@@ -3,48 +3,38 @@
 # Description : Genome containing instruction on how to build a network.
 # ----------------------------------------------------------------------
 
-from node import InputNode, HiddenNode, OutputNode
-from random import random, choice
+# General imports
+from random import choice, random
 from typing import Tuple
 
-
-class Innovation:
-
-    def __init__(self, number: int, src_number: int, dst_number: int, weight: float, enabled: bool, forward: bool):
-        super(Innovation, self).__init__()
-        self.number = None if number == -1 else number
-        self.src_number = None if src_number == -1 else src_number
-        self.dst_number = None if dst_number == -1 else dst_number
-        self.weight = weight
-        self.enabled = enabled
-        self.forward = forward
-
-    def __repr__(self):
-        string = "Innovation {}: ({} -> {}) {}"
-        return string.format(self.number, self.src_number, self.dst_number,
-                             "Enabled"*self.enabled or "Disabled")
+# Project imports
+from innovation import Innovation
+from node import HiddenNode, InputNode, OutputNode
 
 
 class Dna:
 
-    def __init__(self, inputs: int, outputs: int, weight_range: int):
+    def __init__(self, inputs: int, outputs: int, weight_range: int, empty=False):
         self.inputs = inputs
         self.outputs = outputs
         self.weight_range = weight_range
+        self.empty = empty
 
-        # Generate input and output nodes
+        # Generate input and output nodes, if not empty
         self.node_gene = [InputNode(node_number, 0) if node_number < self.inputs else OutputNode(node_number, 1)
-                          for node_number in range(self.inputs + self.outputs)]
+                          for node_number in range(self.inputs + self.outputs)] if not self.empty else []
 
-        # Fully connect input and output genes
+        # Fully connect input and output genes, if not empty
         self.innovation_gene = []
-        for input_node in self.node_gene[:self.inputs]:
-            for output_node in self.node_gene[-self.outputs:]:
-                self.innovation_gene.append(Innovation(len(self.innovation_gene),
-                                                       input_node.number,
-                                                       output_node.number,
-                                                       self.random_weight(),
-                                                       True, True))
+
+        if not self.empty:
+            for input_node in self.node_gene[:self.inputs]:
+                for output_node in self.node_gene[-self.outputs:]:
+                    self.innovation_gene.append(Innovation(len(self.innovation_gene),
+                                                           input_node.number,
+                                                           output_node.number,
+                                                           self.random_weight(),
+                                                           True, True))
 
     def random_weight(self) -> float:
         """
@@ -85,7 +75,6 @@ class Dna:
         """
         src_node = self.get_node(target_innovation.src_number)
         dst_node = self.get_node(target_innovation.dst_number)
-        # node_layer = (src_node.layer + dst_node.layer) / 2
         new_node = HiddenNode(-1, -1)
         forward = src_node.layer < dst_node.layer
         new_source_innovation = Innovation(-1, src_node.number, new_node.number, 1, True, forward)
@@ -145,6 +134,52 @@ class Dna:
                 innovation.weight += random() * self.weight_range / 8.0
 
         return mutations
+
+    def crossover(self, mate: 'Dna') -> 'Dna':
+        """
+        Generates a child dna based of mate and self dna.
+        :param mate: Mate's dna
+        :return: Child's dna
+        """
+
+        def sort_innovations(a_innovations: list, b_innovations: list) -> tuple:
+            """
+            Sorts innovations from both parents into matching, a-specific and b-specific innovations lists.
+            :param a_innovations: Parent A's innovations
+            :param b_innovations: Parent B's innovations
+            :return: Matching innovations, non-matching innovations
+            """
+            ab_matching, a_specific, b_specific = [], [], []
+
+            # Check for innovations present in both parents, and innovations present only in parent A.
+            for a_innovation in a_innovations:
+                if a_innovation in b_innovations:
+                    ab_matching.append(a_innovation)
+                else:
+                    a_specific.append(a_innovation)
+
+            # Check for innovations present only in parent B.
+            for b_innovation in b_innovations:
+                if b_innovation not in a_innovations:
+                    b_specific.append(b_innovation)
+
+            return ab_matching, a_specific, b_specific
+
+        # Initialize child dna as empty dna.
+        child_dna = Dna(self.inputs, self.outputs, self.weight_range, empty=True)
+        child_innovations = child_dna.innovation_gene
+        child_nodes = child_dna.node_gene
+
+        # Get sorted innovations.
+        matching, self_specific, mate_specific = sort_innovations(self.innovation_gene, mate.innovation_gene)
+
+        # Matching genes are inherited randomly.
+        for innovation in matching:
+            if random() < 0.5:
+                child_innovations.append(innovation)
+
+        # Non matching genes (A.K.A. disjoint and excess genes) are inherited from the fitter parent.
+
 
 
 if __name__ == '__main__':

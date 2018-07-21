@@ -32,7 +32,6 @@ class HiddenNode:
         :return: Node output
         """
         self.output = self.activation(sum(self.inputs))
-        print("Calculating output for {}: {} (I'm {})".format(self.inputs, self.output, self))
         return self.output
 
     def __repr__(self) -> str:

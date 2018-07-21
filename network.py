@@ -114,6 +114,14 @@ class Network:
         else:
             self.layers[layer].append(node)
 
+    def get_node(self, node_number: int) -> HiddenNode:
+        """
+        Finds a node by its number.
+        :param node_number: Number of the node
+        :return: Node with correct number
+        """
+        return [node for node in self.nodes if node.number == node_number][0]
+
     def mutate(self, node_mutation_rate: float, innovation_mutation_rate: float,
                weight_mutation_rate: float, random_weight_rate: float) -> list:
         """
@@ -180,15 +188,6 @@ class Network:
                 network_graph.edge(tail_name=str(connection.src_number), head_name=str(connection.dst_number),
                                    color=color, arrowhead=None)
         network_graph.render(RENDER_FILE, view=view)
-
-    def get_node(self, node_number: int) -> HiddenNode:
-        """
-        Finds a node by its number.
-        :param node_number: Number of the node
-        :return: Node with correct number
-        """
-        return [node for node in self.nodes if node.number == node_number][0]
-
 
 
 def configure_mutation(mutations: list, g_innovation_number: int, g_node_number: int) -> tuple:
