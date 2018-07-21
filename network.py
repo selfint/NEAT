@@ -3,7 +3,7 @@
 # -------------------------------------------------------------
 
 
-from dna import Dna
+from dna import Dna, Innovation
 from graphviz import Digraph
 
 from node import HiddenNode
@@ -55,6 +55,14 @@ class Network:
         :return: None
         """
 
+    def add_connection(self, connection: Innovation) -> None:
+        """
+        Adds a connection to the network.
+        :param connection: Connection to add
+        :return: None
+        """
+        self.dna.innovation_gene.append(connection)
+
     def add_node(self, node: HiddenNode, layer: int, new_layer: bool) -> None:
         """
         Adds a node to the network.
@@ -63,11 +71,17 @@ class Network:
         :param new_layer: Need to create new layer
         :return: None
         """
+        node.layer = layer
         self.dna.node_gene.append(node)
 
         # Create a new layer if needed.
         if new_layer:
-            self.layers.insert(layer, node)
+            self.layers.insert(layer, [node])
+
+            # Re-assign node numbers
+            for layer in range(len(self.layers)):
+                for node in self.layers[layer]:
+                    node.layer = layer
         else:
             self.layers[layer].append(node)
 
@@ -84,6 +98,31 @@ class Network:
         """
         return self.dna.mutate(node_mutation_rate, innovation_mutation_rate, weight_mutation_rate, random_weight_rate)
 
+    def apply_mutation(self, mutations: list) -> None:
+        """
+        Applies all configured mutations to the network.
+        :param mutations: Configured mutations to add
+        :return: None
+        """
+        for mutation in mutations:
+
+            # Node mutation
+            if len(mutation) == 4:
+                node, src, dst, target = mutation
+                src_node, dst_node = self.get_node(target.src_number), self.get_node(target.dst_number)
+                node_layer = (src_node.layer + dst_node.layer) / 2.0
+                node_layer = int(node_layer + int(target.forward)) \
+                    if node_layer % 10.0 == 0.5 else int(node_layer + int(not target.forward))
+                new_layer = node_layer == src_node.layer or node_layer == dst_node.layer
+                self.add_node(node, node_layer, new_layer)
+                self.add_connection(src)
+                self.add_connection(dst)
+
+            # Connection mutation
+            elif len(mutation) == 1:
+                innovation, = mutation
+                self.add_connection(innovation)
+
     def render(self) -> None:
         """
         Renders the network in 2D.
@@ -91,14 +130,23 @@ class Network:
         """
         network_graph = Digraph(comment="NEAT structure")
         for node in self.nodes:
-            network_graph.node(name=str(node.number), label=str(node), color="green")
+            network_graph.node(name=str(node.number), label=str(node), fill_color="green")
         for connection in self.connections:
-            network_graph.edge(tail_name=str(connection.src_number), head_name=str(connection.dst_number),
-                               label="{:.2f}".format(connection.weight))
+            if connection.enabled:
+                network_graph.edge(tail_name=str(connection.src_number), head_name=str(connection.dst_number),
+                                   label="{:.2f}".format(connection.weight))
         network_graph.render('renders/neat-structure.gv', view=True)
 
+    def get_node(self, node_number: int) -> HiddenNode:
+        """
+        Finds a node by its number.
+        :param node_number: Number of the node
+        :return: Node with correct number
+        """
+        return [node for node in self.nodes if node.number == node_number][0]
 
-def configure_mutation(mutations: list, global_innovation_number: int, global_node_number: int) -> list:
+
+def configure_mutation(mutations: list, global_innovation_number: int, global_node_number: int) -> tuple:
     """
 
     Simulates how the main simulation will configure a mutation.
@@ -107,20 +155,45 @@ def configure_mutation(mutations: list, global_innovation_number: int, global_no
     :param global_node_number: Highest node number so far
     :return: Configured mutation
     """
+    configured_mutations = []
 
     for mutation in mutations:
 
         # Node mutation
         if len(mutation) == 4:
             node, src, dst, target = mutation
+            node.number = global_node_number
+            src.number = global_innovation_number
+            src.dst_number = node.number
+            dst.src_number = node.number
+            target.enabled = False
+            dst.number = global_innovation_number + 1
+            configured_mutations.append([node, src, dst, target])
+
+            # Increment global counters
+            global_innovation_number = global_innovation_number + 2
+            global_node_number = global_node_number + 1
 
         # Innovation mutation
         elif len(mutation) == 1:
             innovation, = mutation
+            innovation.number = global_innovation_number
+            configured_mutations.append([innovation])
+
+            global_innovation_number += 1
+
+    return configured_mutations, global_innovation_number, global_node_number
 
 
 if __name__ == '__main__':
     print('Testing Network')
     network_test = Network(2, 3, 2)
-    network_test.render()
-
+    g_innovation_number = len(network_test.connections)
+    g_node_number = len(network_test.nodes)
+    c_mutations, g_innovation_number, g_node_number = configure_mutation(network_test.mutate(1, 1, 0, 0),
+                                                                        g_innovation_number, g_node_number)
+    for c_mutation in c_mutations:
+        network_test.apply_mutation([c_mutation])
+    print(network_test.connections)
+    if input("Render?\n"):
+        network_test.render()

@@ -8,7 +8,7 @@ from math import e
 
 
 # String representation
-STRING = "{}: {}"
+STRING = "{}: {} (Layer {})"
 
 
 # Default activation function
@@ -34,7 +34,7 @@ class HiddenNode:
         return self.output
 
     def __repr__(self):
-        return STRING.format(self.name(), self.number)
+        return STRING.format(self.name(), self.number, self.layer)
 
     def __str__(self):
         return repr(self)
