@@ -2,11 +2,13 @@
 # Description : Network class built by Dna object instructions.
 # -------------------------------------------------------------
 
-
+# Imports
 from dna import Dna, Innovation
 from graphviz import Digraph
-
 from node import HiddenNode
+
+# Constants
+RENDER_FILE = r'renders/neat-structure.gv'
 
 
 class Network:
@@ -128,14 +130,16 @@ class Network:
         Renders the network in 2D.
         :return: None
         """
-        network_graph = Digraph(comment="NEAT structure")
+
+        # TODO add layer organization
+        network_graph = Digraph(comment="NEAT structure", strict=True)
         for node in self.nodes:
-            network_graph.node(name=str(node.number), label=str(node), fill_color="green")
+            network_graph.node(name=str(node.number), label=str(node), color="green")
         for connection in self.connections:
             if connection.enabled:
                 network_graph.edge(tail_name=str(connection.src_number), head_name=str(connection.dst_number),
                                    label="{:.2f}".format(connection.weight))
-        network_graph.render('renders/neat-structure.gv', view=True)
+        network_graph.render(RENDER_FILE, view=True)
 
     def get_node(self, node_number: int) -> HiddenNode:
         """
@@ -191,9 +195,12 @@ if __name__ == '__main__':
     g_innovation_number = len(network_test.connections)
     g_node_number = len(network_test.nodes)
     c_mutations, g_innovation_number, g_node_number = configure_mutation(network_test.mutate(1, 1, 0, 0),
-                                                                        g_innovation_number, g_node_number)
+                                                                         g_innovation_number, g_node_number)
     for c_mutation in c_mutations:
         network_test.apply_mutation([c_mutation])
-    print(network_test.connections)
-    if input("Render?\n"):
+    c_mutations, g_innovation_number, g_node_number = configure_mutation(network_test.mutate(1, 1, 0, 0),
+                                                                         g_innovation_number, g_node_number)
+    for c_mutation in c_mutations:
+        network_test.apply_mutation([c_mutation])
+    if True or input("Render?\n"):
         network_test.render()
