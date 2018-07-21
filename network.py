@@ -2,9 +2,11 @@
 # Description : Network class built by Dna object instructions.
 # -------------------------------------------------------------
 
-# Imports
-from dna import Dna, Innovation
+# Graphic Imports
 from graphviz import Digraph
+
+# Project Imports
+from dna import Dna, Innovation
 from node import HiddenNode
 
 # Constants
@@ -48,14 +50,39 @@ class Network:
         """
 
         # Set each input value as the input to an input node.
-        for index in range(self.input_nodes):
-            self.input_nodes[index].inputs = list(inputs[index])
+        for index in range(len(self.input_nodes)):
+            self.input_nodes[index].inputs = [inputs[index]]
 
-    def forward_propagate(self) -> None:
+    def forward_propagate(self) -> list:
         """
         Tell each node to send its output to each node it is connected to, by layer.
+        Assumes that the inputs of the network have been set.
         :return: None
         """
+
+        # Iterate over all layers, and send node outputs in that order.
+        for layer in self.layers:
+            for node in layer:
+
+                # Get all connections outputting from node.
+                _, destination_connections = self.get_node_connections(node)
+                for connection in destination_connections:
+                    destination_node = self.get_node(connection.dst_number)
+                    destination_node.inputs.append(node.get_output())
+
+        # Return the output of the last layer.
+        return [node for node in self.layers[-1]]
+
+    def get_node_connections(self, node: HiddenNode) -> tuple:
+        """
+        Returns all connections leading in and out of a node.
+        :param node: Node to get connections for
+        :return: List of source (in) connections and list of destination (out) connections
+        """
+        source_connections = [connection for connection in self.connections if connection.dst_number == node.number]
+        destination_connections = [connection for connection in self.connections
+                                   if connection.src_number == node.number]
+        return source_connections, destination_connections
 
     def add_connection(self, connection: Innovation) -> None:
         """
@@ -163,13 +190,14 @@ class Network:
         return [node for node in self.nodes if node.number == node_number][0]
 
 
-def configure_mutation(mutations: list, global_innovation_number: int, global_node_number: int) -> tuple:
+
+def configure_mutation(mutations: list, g_innovation_number: int, g_node_number: int) -> tuple:
     """
 
     Simulates how the main simulation will configure a mutation.
     :param mutations: Mutation list
-    :param global_innovation_number: Highest innovation number so far
-    :param global_node_number: Highest node number so far
+    :param g_innovation_number: Highest innovation number so far
+    :param g_node_number: Highest node number so far
     :return: Configured mutation
     """
     configured_mutations = []
@@ -179,27 +207,27 @@ def configure_mutation(mutations: list, global_innovation_number: int, global_no
         # Node mutation
         if len(mutation) == 4:
             node, src, dst, target = mutation
-            node.number = global_node_number
-            src.number = global_innovation_number
+            node.number = g_node_number
+            src.number = g_innovation_number
             src.dst_number = node.number
             dst.src_number = node.number
             target.enabled = False
-            dst.number = global_innovation_number + 1
+            dst.number = g_innovation_number + 1
             configured_mutations.append([node, src, dst, target])
 
             # Increment global counters
-            global_innovation_number = global_innovation_number + 2
-            global_node_number = global_node_number + 1
+            g_innovation_number = g_innovation_number + 2
+            g_node_number = g_node_number + 1
 
         # Innovation mutation
         elif len(mutation) == 1:
             innovation, = mutation
-            innovation.number = global_innovation_number
+            innovation.number = g_innovation_number
             configured_mutations.append([innovation])
 
-            global_innovation_number += 1
+            g_innovation_number += 1
 
-    return configured_mutations, global_innovation_number, global_node_number
+    return configured_mutations, g_innovation_number, g_node_number
 
 
 def do_mutations(network: Network, g_innovation_number, g_node_number):
@@ -224,10 +252,12 @@ if __name__ == '__main__':
     global_node_number = len(network_test.nodes)
 
     # Test mutations
-    for iteration in range(5):
+    for iteration in range(1):
         global_innovation_number, global_node_number = do_mutations(network_test, global_innovation_number,
                                                                     global_node_number)
 
     # Test render
     if input("Render? (y/n) ") == 'y':
         network_test.render()
+
+    print("Network output for (0, 1): {}".format(network_test.get_output([0, 1])))

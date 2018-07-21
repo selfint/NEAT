@@ -8,6 +8,7 @@ from math import e
 
 
 # String representation
+
 STRING = "{}: {} (Layer {})"
 
 
@@ -31,12 +32,13 @@ class HiddenNode:
         :return: Node output
         """
         self.output = self.activation(sum(self.inputs))
+        print("Calculating output for {}: {} (I'm {})".format(self.inputs, self.output, self))
         return self.output
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return STRING.format(self.name(), self.number, self.layer)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return repr(self)
 
     def name(self) -> str:
