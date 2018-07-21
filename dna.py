@@ -85,8 +85,8 @@ class Dna:
         """
         src_node = self.get_node(target_innovation.src_number)
         dst_node = self.get_node(target_innovation.dst_number)
-        node_layer = (src_node.layer + dst_node.layer) / 2
-        new_node = HiddenNode(-1, node_layer)
+        # node_layer = (src_node.layer + dst_node.layer) / 2
+        new_node = HiddenNode(-1, -1)
         forward = src_node.layer < dst_node.layer
         new_source_innovation = Innovation(-1, src_node.number, new_node.number, 1, True, forward)
         new_destination_innovation = Innovation(-1, new_node.number, dst_node.number, target_innovation.weight,
@@ -105,7 +105,9 @@ class Dna:
                 if src_node is not dst_node:
                     avenue = src_node.number, dst_node.number
                     if avenue not in all_connections:
-                        available_connections.append(avenue)
+                        if type(src_node) is not HiddenNode:
+                            if type(src_node) is not type(dst_node):
+                                available_connections.append(avenue)
         return available_connections
 
     def mutate(self, node_mutation_rate: float, innovation_mutation_rate: float,

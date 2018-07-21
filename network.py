@@ -125,21 +125,34 @@ class Network:
                 innovation, = mutation
                 self.add_connection(innovation)
 
-    def render(self) -> None:
+    def render(self, view: bool = True) -> None:
         """
         Renders the network in 2D.
+        :param view: If the render should automatically be viewed
         :return: None
         """
 
-        # TODO add layer organization
-        network_graph = Digraph(comment="NEAT structure", strict=True)
-        for node in self.nodes:
-            network_graph.node(name=str(node.number), label=str(node), color="green")
+        # TODO find a way to force layers to a certain rank.
+
+        network_graph = Digraph(comment="NEAT structure", strict=True, graph_attr={"rankdir": "LR",
+                                                                                   "splines": None})
+
+        # Generate layers
+        for layer in range(len(self.layers)):
+            with network_graph.subgraph(name=str("Layer {}".format(layer))) as graph_layer:
+                graph_layer.attr(rank='same')
+                color = "green" if layer == 0 else "yellow" if layer == (len(self.layers)-1) else "lightgrey"
+                for node in self.layers[layer]:
+                    graph_layer.node(name=str(node.number), label=str(node.number), color=color,
+                                     shape="circle", fillcolor=color, style="filled")
+
+        # Generate connections
         for connection in self.connections:
             if connection.enabled:
+                color = "red" if connection.weight > 0 else "blue"
                 network_graph.edge(tail_name=str(connection.src_number), head_name=str(connection.dst_number),
-                                   label="{:.2f}".format(connection.weight))
-        network_graph.render(RENDER_FILE, view=True)
+                                   color=color, arrowhead=None)
+        network_graph.render(RENDER_FILE, view=view)
 
     def get_node(self, node_number: int) -> HiddenNode:
         """
@@ -189,18 +202,32 @@ def configure_mutation(mutations: list, global_innovation_number: int, global_no
     return configured_mutations, global_innovation_number, global_node_number
 
 
+def do_mutations(network: Network, g_innovation_number, g_node_number):
+    """
+    Mutates the network
+    :param g_innovation_number: Highest innovation number so far
+    :param g_node_number: Highest node number so far
+    :param network: Network to mutate
+    :return: Updated global innovation and node numbers
+    """
+    c_mutations, g_innovation_number, g_node_number = configure_mutation(network.mutate(1, 1, 0, 0),
+                                                                         g_innovation_number, g_node_number)
+    for c_mutation in c_mutations:
+        network_test.apply_mutation([c_mutation])
+    return g_innovation_number, g_node_number
+
+
 if __name__ == '__main__':
     print('Testing Network')
     network_test = Network(2, 3, 2)
-    g_innovation_number = len(network_test.connections)
-    g_node_number = len(network_test.nodes)
-    c_mutations, g_innovation_number, g_node_number = configure_mutation(network_test.mutate(1, 1, 0, 0),
-                                                                         g_innovation_number, g_node_number)
-    for c_mutation in c_mutations:
-        network_test.apply_mutation([c_mutation])
-    c_mutations, g_innovation_number, g_node_number = configure_mutation(network_test.mutate(1, 1, 0, 0),
-                                                                         g_innovation_number, g_node_number)
-    for c_mutation in c_mutations:
-        network_test.apply_mutation([c_mutation])
-    if True or input("Render?\n"):
+    global_innovation_number = len(network_test.connections)
+    global_node_number = len(network_test.nodes)
+
+    # Test mutations
+    for iteration in range(5):
+        global_innovation_number, global_node_number = do_mutations(network_test, global_innovation_number,
+                                                                    global_node_number)
+
+    # Test render
+    if input("Render? (y/n) ") == 'y':
         network_test.render()

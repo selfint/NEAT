@@ -20,8 +20,8 @@ class HiddenNode:
 
     def __init__(self, number: int, layer: int, activation=sigmoid):
         self.number = None if number == -1 else number
+        self.layer = None if layer == -1 else layer
         self.activation = activation
-        self.layer = layer
         self.inputs = []
         self.output = 0
 
