@@ -5,7 +5,7 @@
 
 # General imports
 from random import choice, random
-from typing import Tuple
+from typing import Tuple, List
 
 # Project imports
 from innovation import Innovation
@@ -13,6 +13,8 @@ from node import HiddenNode, InputNode, OutputNode
 
 
 class Dna:
+
+    node_gene: List[HiddenNode]
 
     def __init__(self, inputs: int, outputs: int, weight_range: int, empty=False):
         self.inputs = inputs
@@ -49,8 +51,12 @@ class Dna:
         :param number: Node number of the node
         :return: Node with corresponding number
         """
-        node, = [node for node in self.node_gene if node.number == number]
-        return node
+        node = [node for node in self.node_gene if node.number == number]
+
+        # Raise index error if node not in dna node gene.
+        if not node:
+            raise IndexError('Node number {} is not in dna.')
+        return node[0]
 
     def new_innovation(self, src_number: int, dst_number: int) -> Tuple[Innovation]:
         """
@@ -75,10 +81,10 @@ class Dna:
         """
         src_node = self.get_node(target_innovation.src_number)
         dst_node = self.get_node(target_innovation.dst_number)
-        new_node = HiddenNode(-1, -1)
+        new_node = HiddenNode(None, None)
         forward = src_node.layer < dst_node.layer
-        new_source_innovation = Innovation(-1, src_node.number, new_node.number, 1, True, forward)
-        new_destination_innovation = Innovation(-1, new_node.number, dst_node.number, target_innovation.weight,
+        new_source_innovation = Innovation(None, src_node.number, new_node.number, 1, True, forward)
+        new_destination_innovation = Innovation(None, new_node.number, dst_node.number, target_innovation.weight,
                                                 True, forward)
         return new_node, new_source_innovation, new_destination_innovation, target_innovation
 
@@ -135,10 +141,11 @@ class Dna:
 
         return mutations
 
-    def crossover(self, mate: 'Dna') -> 'Dna':
+    def crossover(self, mate: 'Dna', fitter_parent: object) -> 'Dna':
         """
         Generates a child dna based of mate and self dna.
         :param mate: Mate's dna
+        :param fitter_parent: Which parent has the higher fitness
         :return: Child's dna
         """
 
@@ -179,15 +186,39 @@ class Dna:
                 child_innovations.append(innovation)
 
         # Non matching genes (A.K.A. disjoint and excess genes) are inherited from the fitter parent.
+        if self is fitter_parent:
+            child_innovations.extend(self_specific)
+        elif mate is fitter_parent:
+            child_innovations.extend(mate_specific)
 
+        # If both parents have equal fitness (unlikely, but possible).
+        else:
+            for innovation in self_specific + mate_specific:
+                if random() < 0.5:
+                    child_innovations.append(innovation)
+
+        # Add all necessary nodes to child.
+        nodes = set()
+        for child_innovation in child_innovations:
+            nodes.add(child_innovation.src_number)
+            nodes.add(child_innovation.dst_number)
+
+        # If a node isn't in this dna then it must be in the mate dna.
+        for node_number in nodes:
+            try:
+                child_nodes.append(self.get_node(node_number))
+            except IndexError:
+                child_nodes.append(mate.get_node(node_number))
+        return child_dna
 
 
 if __name__ == '__main__':
     print('Testing Dna')
     dna_test = Dna(4, 3, 2)
-    print(dna_test.node_gene)
-    print(dna_test.innovation_gene)
+    dna_mate = Dna(4, 3, 2)
     innovation_mutation = dna_test.new_innovation(2, 4)
     node_mutation = dna_test.new_node(dna_test.innovation_gene[0])
-    print(innovation_mutation)
-    print(node_mutation)
+    child = dna_test.crossover(dna_mate, None)
+    print(child.node_gene)
+    print(child.innovation_gene)
+    print(len(child.innovation_gene))

@@ -5,7 +5,7 @@
 
 # Imports
 from math import e
-
+from typing import Union
 
 # String representation
 
@@ -19,9 +19,9 @@ def sigmoid(x: float) -> float:
 
 class HiddenNode:
 
-    def __init__(self, number: int, layer: int, activation=sigmoid):
-        self.number = None if number == -1 else number
-        self.layer = None if layer == -1 else layer
+    def __init__(self, number: Union[int, None], layer: Union[int, None], activation=sigmoid):
+        self.number = number
+        self.layer = layer
         self.activation = activation
         self.inputs = []
         self.output = 0
@@ -50,7 +50,7 @@ class HiddenNode:
 
 class InputNode(HiddenNode):
 
-    def __init__(self, number: int, layer: int):
+    def __init__(self, number: Union[int, None], layer: Union[int, None]):
 
         # The lambda function replaces the activation function so that the output of an input node
         # is only the sum of its inputs, without activation.
@@ -59,14 +59,14 @@ class InputNode(HiddenNode):
 
 class OutputNode(HiddenNode):
 
-    def __init__(self, number: int, layer: int, activation=sigmoid):
+    def __init__(self, number: Union[int, None], layer: Union[int, None], activation=sigmoid):
         super(OutputNode, self).__init__(number, layer, activation)
 
 
 if __name__ == '__main__':
     print('Testing Nodes')
-    input_test = InputNode(0, 0)
-    hidden_test = HiddenNode(1, 1)
+    input_test = InputNode(None, 0)
+    hidden_test = HiddenNode(1, None)
     output_test = OutputNode(2, 2)
     print(input_test, hidden_test, output_test)
     print(input_test.get_output(), hidden_test.get_output(), output_test.get_output())
