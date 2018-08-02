@@ -16,11 +16,13 @@ class Innovation:
         self.enabled = enabled
         self.forward = forward
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         string = "Innovation {}: ({} -> {}) {}"
         return string.format(self.number, self.src_number, self.dst_number,
                              "Enabled" * self.enabled or "Disabled")
 
+    def __repr__(self) -> str:
+        return str(self)
 
 if __name__ == '__main__':
     print("Testing Innovation")

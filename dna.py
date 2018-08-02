@@ -28,7 +28,6 @@ class Dna:
 
         # Fully connect input and output genes, if not empty
         self.innovation_gene = []
-
         if not self.empty:
             for input_node in self.node_gene[:self.inputs]:
                 for output_node in self.node_gene[-self.outputs:]:
@@ -45,7 +44,7 @@ class Dna:
         """
         return random() * self.weight_range * 2 - self.weight_range
 
-    def get_node(self, number: int) -> HiddenNode:
+    def get_number_node(self, number: int) -> HiddenNode:
         """
         Returns a node by its node number.
         :param number: Node number of the node
@@ -55,8 +54,15 @@ class Dna:
 
         # Raise index error if node not in dna node gene.
         if not node:
-            raise IndexError('Node number {} is not in dna.')
+            raise IndexError('Node number {} is not in dna.'.format(number))
         return node[0]
+
+    def get_nodes(self, node_type: type, *other_types) -> List[HiddenNode]:
+        """
+        Gets all node of a type (or types) for node gene.
+        :return: list of nodes
+        """
+        return [node for node in self.node_gene if type(node) is node_type or type(node) in other_types]
 
     def new_innovation(self, src_number: int, dst_number: int) -> Tuple[Innovation]:
         """
@@ -65,7 +71,7 @@ class Dna:
         :param dst_number: Destination node's number.
         :return: New innovation
         """
-        forward = self.get_node(src_number).layer < self.get_node(dst_number).layer
+        forward = self.get_number_node(src_number).layer < self.get_number_node(dst_number).layer
         new_innovation = Innovation(-1, src_number, dst_number, self.random_weight(), True, forward)
         return new_innovation,
 
@@ -79,8 +85,8 @@ class Dna:
         :param target_innovation: Innovation to split
         :return: The new node, the two new innovations, and the old innovation to disable
         """
-        src_node = self.get_node(target_innovation.src_number)
-        dst_node = self.get_node(target_innovation.dst_number)
+        src_node = self.get_number_node(target_innovation.src_number)
+        dst_node = self.get_number_node(target_innovation.dst_number)
         new_node = HiddenNode(None, None)
         forward = src_node.layer < dst_node.layer
         new_source_innovation = Innovation(None, src_node.number, new_node.number, 1, True, forward)
@@ -88,11 +94,12 @@ class Dna:
                                                 True, forward)
         return new_node, new_source_innovation, new_destination_innovation, target_innovation
 
-    def get_available_connections(self) -> list:
+    def get_available_connections(self) -> List[Tuple[int, int]]:
         """
         Finds all possible source and destination node pairs that are not connected.
         :return: List of source and destination node numbers
         """
+
         all_connections = [(innovation.src_number, innovation.dst_number) for innovation in self.innovation_gene]
         available_connections = []
         for src_node in self.node_gene:
@@ -100,9 +107,10 @@ class Dna:
                 if src_node is not dst_node:
                     avenue = src_node.number, dst_node.number
                     if avenue not in all_connections:
-                        if type(src_node) is not HiddenNode:
-                            if type(src_node) is not type(dst_node):
-                                available_connections.append(avenue)
+                        if type(src_node) is HiddenNode:
+                            available_connections.append(avenue)
+                        elif type(src_node) is not type(dst_node):
+                            available_connections.append(avenue)
         return available_connections
 
     def mutate(self, node_mutation_rate: float, innovation_mutation_rate: float,
@@ -203,12 +211,29 @@ class Dna:
             nodes.add(child_innovation.src_number)
             nodes.add(child_innovation.dst_number)
 
-        # If a node isn't in this dna then it must be in the mate dna.
-        for node_number in nodes:
-            try:
-                child_nodes.append(self.get_node(node_number))
-            except IndexError:
-                child_nodes.append(mate.get_node(node_number))
+        # Add all input and output nodes (if they were missed in crossover).
+        for node in self.get_nodes(InputNode, OutputNode) + mate.get_nodes(InputNode, OutputNode):
+            nodes.add(node.number)
+
+        # Add all necessary nodes to child dna.
+        for node in nodes:
+
+            # Check if the node is in either parent.
+            for parent in (self, mate):
+
+                # If node is not in self then it will be in mate.
+                try:
+                    child_node = parent.get_number_node(node)
+
+                    if child_node not in child_nodes:
+                        child_nodes.append(child_node)
+
+                        # If node is in self then we can skip over mate, node has already been added.
+                        break
+
+                except IndexError:
+                    continue
+
         return child_dna
 
 

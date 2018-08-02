@@ -4,7 +4,7 @@
 
 # Graphic Imports
 from graphviz import Digraph
-from typing import Union
+from typing import Union, Tuple
 
 # Project Imports
 from dna import Dna, Innovation
@@ -16,7 +16,7 @@ RENDER_FILE = r'renders/neat-structure.gv'
 
 class Network:
 
-    def __init__(self, inputs: int, outputs: int, weight_range: int, dna: Union[None, Dna] = None):
+    def __init__(self, inputs: int, outputs: int, weight_range: int, dna: Union[None, Dna] = None, name: str = ''):
         self.inputs = inputs
         self.outputs = outputs
         self.weight_range = weight_range
@@ -27,6 +27,25 @@ class Network:
         self.input_nodes = [node for node in self.nodes if type(node) is InputNode]
         self.output_nodes = [node for node in self.nodes if type(node) is OutputNode]
         self.layers = self.set_layers()
+        self.name = name if name else "Network"
+
+    def __str__(self) -> str:
+        string = ""
+        string += "{}\n".format(self.name)
+        for layer in range(len(self.layers)):
+            string += "Layer {}\n".format(layer)
+            for node in self.layers[layer]:
+                string += "\tNode {}\n".format(node.number)
+                inputs, outputs = self.get_node_connections(node)
+                string += "\t\tInput Connections:\n"
+                for input_connection in inputs:
+                    string += "\t\t\t" + str(input_connection) + "\n"
+
+                string += "\t\tOutput Connections:\n"
+                for output_connection in outputs:
+                    string += "\t\t\t" + str(output_connection) + "\n"
+        return string
+
 
     def get_output(self, inputs: list) -> list:
         """
@@ -162,7 +181,7 @@ class Network:
                 innovation, = mutation
                 self.add_connection(innovation)
 
-    def crossover(self, mate: 'Network') -> 'Network':
+    def crossover(self, mate: 'Network', name: str = '') -> 'Network':
         """
         Performs crossover with another network.
         :param mate: Mate network to perform crossover with
@@ -171,7 +190,7 @@ class Network:
         fitter_network = self if self.fitness > mate.fitness else mate if self.fitness < mate.fitness else None
         fitter_dna = fitter_network.dna if fitter_network else None
         child_dna = self.dna.crossover(mate.dna, fitter_dna)
-        child = Network(self.inputs, self.outputs, self.weight_range, child_dna)
+        child = Network(self.inputs, self.outputs, self.weight_range, child_dna, name=name)
         return child
 
     def set_layers(self):
@@ -205,7 +224,6 @@ class Network:
 
         # Generate layers
         for layer in range(len(self.layers)):
-            print(self.layers[layer])
             with network_graph.subgraph(name=str("Layer {}".format(layer))) as graph_layer:
                 graph_layer.attr(rank='same')
                 color = "green" if layer == 0 else "yellow" if layer == (len(self.layers)-1) else "lightgrey"
@@ -261,7 +279,7 @@ def configure_mutation(mutations: list, g_innovation_number: int, g_node_number:
     return configured_mutations, g_innovation_number, g_node_number
 
 
-def do_mutations(network: Network, g_innovation_number, g_node_number):
+def do_mutations(network: Network, g_innovation_number: int, g_node_number: int) -> Tuple[int, int]:
     """
     Mutates the network
     :param g_innovation_number: Highest innovation number so far
@@ -278,24 +296,30 @@ def do_mutations(network: Network, g_innovation_number, g_node_number):
 
 if __name__ == '__main__':
     print('Testing Network')
-    network_test = Network(2, 3, 2)
-    network_mate = Network(2, 3, 2)
+    network_test = Network(2, 1, 2, name="Parent A")
+    network_mate = Network(2, 1, 2, name="Parent B")
+    network_test.fitness += 1
     global_innovation_number = len(network_test.connections)
     global_node_number = len(network_test.nodes)
 
     # Test mutations
-    for iteration in range(2):
+    for iteration in range(5):
         global_innovation_number, global_node_number = do_mutations(network_test, global_innovation_number,
                                                                     global_node_number)
-    for iteration in range(2):
+    for iteration in range(0):
         global_innovation_number, global_node_number = do_mutations(network_mate, global_innovation_number,
                                                                     global_node_number)
-    # Test render
-    if False and input("Render? (y/n) ") == 'y':
-        network_test.render()
 
-    child = network_test.crossover(network_mate)
+    print(network_test)
+    # if input("Render Parent A? (y/n) ") == 'y':
+    #     network_test.render()
 
-    # Test crossover
-    if True or input("Render? (y/n) ") == 'y':
+    print(network_mate)
+    # if input("Render Parent B? (y/n) ") == 'y':
+    #     network_mate.render()
+
+    child = network_test.crossover(network_mate, name="Child")
+    print(child)
+    if True or input("Render Child? (y/n) ") == 'y':
         child.render()
+
