@@ -4,7 +4,7 @@
 
 # Graphic Imports
 from graphviz import Digraph
-from typing import Union, Tuple
+from typing import Union, Tuple, List
 
 # Project Imports
 from dna import Dna, Innovation
@@ -12,6 +12,15 @@ from node import HiddenNode, InputNode, OutputNode
 
 # Constants
 RENDER_FILE = r'renders/neat-structure.gv'
+
+
+def flatten(array: List[list]) -> list:
+    """
+    Flattens a 2D array into a 1D array.
+    :param array: 2D array to flatten
+    :return: Flattened 1D array
+    """
+    return [element for sub_list in array for element in sub_list]
 
 
 class Network:
@@ -164,19 +173,21 @@ class Network:
         """
         for mutation in mutations:
 
-            # Node mutation
+            # Node mutation.
             if len(mutation) == 4:
                 node, src, dst, target = mutation
                 src_node, dst_node = self.get_node(target.src_number), self.get_node(target.dst_number)
+
+                # Round up node layer.
                 node_layer = (src_node.layer + dst_node.layer) / 2.0
                 node_layer = int(node_layer + int(target.forward)) \
-                    if node_layer % 10.0 == 0.5 else int(node_layer + int(not target.forward))
+                    if node_layer % 10.0 >= 0.5 else int(node_layer + int(not target.forward))
                 new_layer = node_layer == src_node.layer or node_layer == dst_node.layer
                 self.add_node(node, node_layer, new_layer)
                 self.add_connection(src)
                 self.add_connection(dst)
 
-            # Connection mutation
+            # Connection mutation.
             elif len(mutation) == 1:
                 innovation, = mutation
                 self.add_connection(innovation)
@@ -196,7 +207,7 @@ class Network:
     def set_layers(self):
         """
         Set each node in its proper layer.
-        :return: Sorted layers.
+        :return: Set layers.
         """
         layers = {}
         for node in self.nodes:
@@ -209,6 +220,12 @@ class Network:
         for layer in range(len(sorted_layers)):
             for node in sorted_layers[layer]:
                 node.layer = layer
+        print(sorted_layers)
+
+        # for layer in sorted_layers:
+        #     for node in layer:
+        #         connected_nodes = flatten([[self.get_node(number) for number in connections] for connections in
+        #                                 self.get_node_connections(node)])
         return sorted_layers
 
     def render(self, view: bool = True) -> None:
@@ -225,10 +242,12 @@ class Network:
         # Generate layers
         for layer in range(len(self.layers)):
             with network_graph.subgraph(name=str("Layer {}".format(layer))) as graph_layer:
-                graph_layer.attr(rank='same')
+                rank = "min" if layer == 0 else "max" if layer == (len(self.layers) - 1) else "same"
+                graph_layer.attr(rank=rank)
+
                 color = "green" if layer == 0 else "yellow" if layer == (len(self.layers)-1) else "lightgrey"
                 for node in self.layers[layer]:
-                    graph_layer.node(name=str(node.number), label=str(node.number), color=color,
+                    graph_layer.node(name=str(node.number), label=str(node.layer), color=color,
                                      shape="circle", fillcolor=color, style="filled")
 
         # Generate connections
@@ -319,7 +338,7 @@ if __name__ == '__main__':
     #     network_mate.render()
 
     child = network_test.crossover(network_mate, name="Child")
-    print(child)
+    # print(child)
     if True or input("Render Child? (y/n) ") == 'y':
         child.render()
 
