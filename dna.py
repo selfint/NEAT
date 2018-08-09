@@ -8,6 +8,7 @@ from random import choice, random
 from typing import Tuple, List
 
 # Project imports
+from functions import ignore
 from innovation import Innovation
 from node import HiddenNode, InputNode, OutputNode
 
@@ -25,12 +26,14 @@ class Dna:
         # Generate input and output nodes, if not empty
         self.node_gene = [InputNode(node_number, 0) if node_number < self.inputs else OutputNode(node_number, 1)
                           for node_number in range(self.inputs + self.outputs)] if not self.empty else []
+        self.input_nodes = self.node_gene[:self.inputs]
+        self.output_nodes = self.node_gene[-self.outputs:]
 
         # Fully connect input and output genes, if not empty
         self.innovation_gene = []
         if not self.empty:
-            for input_node in self.node_gene[:self.inputs]:
-                for output_node in self.node_gene[-self.outputs:]:
+            for input_node in self.input_nodes:
+                for output_node in self.output_nodes:
                     self.innovation_gene.append(Innovation(len(self.innovation_gene),
                                                            input_node.number,
                                                            output_node.number,
@@ -101,16 +104,17 @@ class Dna:
         """
 
         all_connections = [(innovation.src_number, innovation.dst_number) for innovation in self.innovation_gene]
+
         available_connections = []
         for src_node in self.node_gene:
-            for dst_node in self.node_gene:
-                if src_node is not dst_node:
-                    avenue = src_node.number, dst_node.number
-                    if avenue not in all_connections:
-                        if type(src_node) is HiddenNode:
-                            available_connections.append(avenue)
-                        elif type(src_node) is not type(dst_node):
-                            available_connections.append(avenue)
+            for dst_node in ignore(self.node_gene, *self.input_nodes):
+                avenue = src_node.number, dst_node.number
+                if avenue not in all_connections:
+                    if type(src_node) is HiddenNode:
+                        available_connections.append(avenue)
+                    elif type(src_node) is not type(dst_node):
+                        available_connections.append(avenue)
+
         return available_connections
 
     def mutate(self, node_mutation_rate: float, innovation_mutation_rate: float,
@@ -134,8 +138,10 @@ class Dna:
 
         # Connection mutation
         if random() < innovation_mutation_rate:
-            src_number, dst_number = choice(self.get_available_connections())
-            mutations.append(self.new_innovation(src_number, dst_number))
+            available_connections = self.get_available_connections()
+            if available_connections:
+                src_number, dst_number = choice(available_connections)
+                mutations.append(self.new_innovation(src_number, dst_number))
 
         # Mutate a weight
         if random() < weight_mutation_rate:
@@ -182,8 +188,10 @@ class Dna:
 
         # Initialize child dna as empty dna.
         child_dna = Dna(self.inputs, self.outputs, self.weight_range, empty=True)
-        child_innovations = child_dna.innovation_gene
+
+        # Get pointers to nodes and innovations
         child_nodes = child_dna.node_gene
+        child_innovations = child_dna.innovation_gene
 
         # Get sorted innovations.
         matching, self_specific, mate_specific = sort_innovations(self.innovation_gene, mate.innovation_gene)

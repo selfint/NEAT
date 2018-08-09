@@ -3,6 +3,8 @@
 # -------------------------------------------------------------
 
 # Graphic Imports
+from random import random
+
 from graphviz import Digraph
 from typing import Union, Tuple, List
 
@@ -12,15 +14,6 @@ from node import HiddenNode, InputNode, OutputNode
 
 # Constants
 RENDER_FILE = r'renders/neat-structure.gv'
-
-
-def flatten(array: List[list]) -> list:
-    """
-    Flattens a 2D array into a 1D array.
-    :param array: 2D array to flatten
-    :return: Flattened 1D array
-    """
-    return [element for sub_list in array for element in sub_list]
 
 
 class Network:
@@ -43,7 +36,7 @@ class Network:
         for layer in range(len(self.layers)):
             string += "Layer {}\n".format(layer)
             for node in self.layers[layer]:
-                string += "\tNode {}\n".format(node.number)
+                string += "\t{} {}\n".format(node.name(), node.number)
                 inputs, outputs = self.get_node_connections(node)
                 string += "\t\tInput Connections:\n"
                 for input_connection in inputs:
@@ -68,10 +61,7 @@ class Network:
         self.initialize_network(inputs)
 
         # Forward propagate each node's output to all the node it outputs to.
-        self.forward_propagate()
-
-        # Get all output node's output.
-        return [node.get_output() for node in self.output_nodes]
+        return self.forward_propagate()
 
     def initialize_network(self, inputs: list) -> None:
         """
@@ -102,7 +92,7 @@ class Network:
                     destination_node.inputs.append(node.get_output())
 
         # Return the output of the last layer.
-        return [node for node in self.layers[-1]]
+        return [node.get_output() for node in self.layers[-1]]
 
     def get_node_connections(self, node: HiddenNode) -> tuple:
         """
@@ -202,7 +192,7 @@ class Network:
         fitter_network = self if self.fitness > mate.fitness else mate if self.fitness < mate.fitness else None
         fitter_dna = fitter_network.dna if fitter_network else None
         child_dna = self.dna.crossover(mate.dna, fitter_dna)
-        child = Network(self.inputs, self.outputs, self.weight_range, child_dna, name=name)
+        child = Network(self.inputs, self.outputs, self.weight_range, child_dna, name)
         return child
 
     def set_layers(self):
@@ -221,7 +211,6 @@ class Network:
         for layer in range(len(sorted_layers)):
             for node in sorted_layers[layer]:
                 node.layer = layer
-        print(sorted_layers)
 
         # for layer in sorted_layers:
         #     for node in layer:
@@ -248,15 +237,22 @@ class Network:
 
                 color = "green" if layer == 0 else "yellow" if layer == (len(self.layers)-1) else "lightgrey"
                 for node in self.layers[layer]:
-                    graph_layer.node(name=str(node.number), label=str(node.layer), color=color,
+                    graph_layer.node(name=str(node.number),
+                                     label='L:' + str(node.layer) + ' N:' + str(node.number),
+                                     color=color,
                                      shape="circle", fillcolor=color, style="filled")
 
         # Generate connections
         for connection in self.connections:
             if connection.enabled:
                 color = "red" if connection.weight > 0 else "blue"
+                f = connection.forward
+                direction = ' -> ' if f else ' <- '
+                src, dst = str(connection.src_number), str(connection.dst_number)
+                string = "([Inn. {0}]: {1}{3}{2})".format(connection.number,
+                                                          src if f else dst, dst if f else src, direction)
                 network_graph.edge(tail_name=str(connection.src_number), head_name=str(connection.dst_number),
-                                   color=color, arrowhead=None)
+                                   color=color, arrowhead=None, label=string)
         network_graph.render(RENDER_FILE, view=view)
 
 
@@ -324,7 +320,7 @@ if __name__ == '__main__':
     
 
     # Test mutations
-    for iteration in range(5):
+    for iteration in range(0):
         global_innovation_number, global_node_number = do_mutations(network_test, global_innovation_number,
                                                                     global_node_number)
     for iteration in range(0):
@@ -340,7 +336,8 @@ if __name__ == '__main__':
     #     network_mate.render()
 
     child = network_test.crossover(network_mate, name="Child")
-    # print(child)
+    print(child)
+    print([child.get_output([random(), random()]) for _ in range(10)])
     if True or input("Render Child? (y/n) ") == 'y':
         child.render()
 
