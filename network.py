@@ -8,7 +8,7 @@ from typing import Union, Tuple, List
 
 # Project Imports
 from dna import Dna, Innovation
-from node import *
+from node import HiddenNode, InputNode, OutputNode
 
 # Constants
 RENDER_FILE = r'renders/neat-structure.gv'
@@ -30,10 +30,8 @@ class Network:
         self.outputs = outputs
         self.weight_range = weight_range
         self.dna = dna if dna else Dna(self.inputs, self.outputs, self.weight_range)
-        print('Innovations: ', self.dna.innovation_gene)
         self.fitness = 0
         self.nodes = self.dna.node_gene
-        self.bias = self.dna.bias
         self.connections = self.dna.innovation_gene
         self.input_nodes = [node for node in self.nodes if type(node) is InputNode]
         self.output_nodes = [node for node in self.nodes if type(node) is OutputNode]
@@ -81,7 +79,7 @@ class Network:
         :param inputs: Network inputs
         :return: None
         """
-        print(self.input_nodes)
+
         # Set each input value as the input to an input node.
         for index in range(len(self.input_nodes)):
             self.input_nodes[index].inputs = [inputs[index]]
@@ -301,7 +299,7 @@ def configure_mutation(mutations: list, g_innovation_number: int, g_node_number:
     return configured_mutations, g_innovation_number, g_node_number
 
 
-def mutate_network(network: Network, g_innovation_number: int, g_node_number: int) -> Tuple[int, int]:
+def do_mutations(network: Network, g_innovation_number: int, g_node_number: int) -> Tuple[int, int]:
     """
     Mutates the network
     :param g_innovation_number: Highest innovation number so far
@@ -323,28 +321,25 @@ if __name__ == '__main__':
     network_test.fitness += 1
     global_innovation_number = len(network_test.connections)
     global_node_number = len(network_test.nodes)
-
+    
 
     # Test mutations
     for iteration in range(5):
-        global_innovation_number, global_node_number = mutate_network(network_test, global_innovation_number,
-                                                                      global_node_number)
+        global_innovation_number, global_node_number = do_mutations(network_test, global_innovation_number,
+                                                                    global_node_number)
     for iteration in range(0):
-        global_innovation_number, global_node_number = mutate_network(network_mate, global_innovation_number,
-                                                                      global_node_number)
+        global_innovation_number, global_node_number = do_mutations(network_mate, global_innovation_number,
+                                                                    global_node_number)
 
     print(network_test)
-    print(network_test.get_output([1,1]))
     # if input("Render Parent A? (y/n) ") == 'y':
     #     network_test.render()
 
-    # print(network_mate)
+    print(network_mate)
     # if input("Render Parent B? (y/n) ") == 'y':
     #     network_mate.render()
 
     child = network_test.crossover(network_mate, name="Child")
-    # print(child.get_output([0, 1]))
-    # print(child.get_output([0, 0]))
     # print(child)
     if True or input("Render Child? (y/n) ") == 'y':
         child.render()
