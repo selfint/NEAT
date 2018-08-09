@@ -16,6 +16,14 @@ STRING = "{}: {} (Layer {})"
 def sigmoid(x: float) -> float:
     return 1.0 / (1.0 + pow(e, -4.9 * x))
 
+# Input node function
+def normal(x: float) -> float:
+    return x
+
+# Bias node function
+def bias(*args) -> float:
+    return 1.0
+
 
 class HiddenNode:
 
@@ -52,9 +60,16 @@ class InputNode(HiddenNode):
 
     def __init__(self, number: Union[int, None], layer: Union[int, None]):
 
-        # The lambda function replaces the activation function so that the output of an input node
-        # is only the sum of its inputs, without activation.
-        super(InputNode, self).__init__(number, layer, lambda x: x)
+        # Set the activation function as normal input function.
+        super(InputNode, self).__init__(number, layer, normal)
+
+
+class BiasNode(InputNode):
+
+    def __init__(self, number: Union[int, None], layer: Union[int, None]):
+
+        # Set the activation function as bias function.
+        super(InputNode, self).__init__(number, layer, bias)
 
 
 class OutputNode(HiddenNode):
