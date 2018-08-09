@@ -36,7 +36,7 @@ class Network:
         for layer in range(len(self.layers)):
             string += "Layer {}\n".format(layer)
             for node in self.layers[layer]:
-                string += "\t{} {}\n".format(node.name(), node.number)
+                string += "\t{}\n".format(node)
                 inputs, outputs = self.get_node_connections(node)
                 string += "\t\tInput Connections:\n"
                 for input_connection in inputs:
@@ -70,11 +70,15 @@ class Network:
         :return: None
         """
 
+        # Reset all nodes in the network
+        for node in self.nodes:
+            node.inputs = []
+
         # Set each input value as the input to an input node.
         for index in range(len(self.input_nodes)):
             self.input_nodes[index].inputs = [inputs[index]]
 
-    def forward_propagate(self) -> list:
+    def forward_propagate(self) -> List[float]:
         """
         Tell each node to send its output to each node it is connected to, by layer.
         Assumes that the inputs of the network have been set.
@@ -85,14 +89,20 @@ class Network:
         for layer in self.layers:
             for node in layer:
 
+                # Calculate node output.
+                node.get_output()
+
                 # Get all connections outputting from node.
                 _, destination_connections = self.get_node_connections(node)
-                for connection in destination_connections:
-                    destination_node = self.get_node(connection.dst_number)
-                    destination_node.inputs.append(node.get_output())
 
-        # Return the output of the last layer.
-        return [node.get_output() for node in self.layers[-1]]
+                for connection in destination_connections:
+
+                    # Send this nodes signal to destination node.
+                    destination_node = self.get_node(connection.dst_number)
+                    destination_node.inputs.append(node.output)
+
+        # Return the output of all output nodes.
+        return [node.get_output() for node in self.output_nodes]
 
     def get_node_connections(self, node: HiddenNode) -> tuple:
         """
@@ -212,10 +222,6 @@ class Network:
             for node in sorted_layers[layer]:
                 node.layer = layer
 
-        # for layer in sorted_layers:
-        #     for node in layer:
-        #         connected_nodes = flatten([[self.get_node(number) for number in connections] for connections in
-        #                                 self.get_node_connections(node)])
         return sorted_layers
 
     def render(self, view: bool = True) -> None:
@@ -245,15 +251,15 @@ class Network:
         # Generate connections
         for connection in self.connections:
             if connection.enabled:
-                color = "red" if connection.weight > 0 else "blue"
+                color = "red" if connection.weight >= 0 else "blue"
                 f = connection.forward
                 direction = ' -> ' if f else ' <- '
                 src, dst = str(connection.src_number), str(connection.dst_number)
                 string = "([Inn. {0}]: {1}{3}{2})".format(connection.number,
                                                           src if f else dst, dst if f else src, direction)
                 network_graph.edge(tail_name=str(connection.src_number), head_name=str(connection.dst_number),
-                                   color=color, arrowhead=None, label=string)
-        network_graph.render(RENDER_FILE, view=view)
+                                   color=color, label=string)
+        network_graph.render(RENDER_FILE, view=view, cleanup=True)
 
 
 def configure_mutation(mutations: list, g_innovation_number: int, g_node_number: int) -> tuple:
@@ -323,7 +329,7 @@ if __name__ == '__main__':
     for iteration in range(0):
         global_innovation_number, global_node_number = do_mutations(network_test, global_innovation_number,
                                                                     global_node_number)
-    for iteration in range(0):
+    for iteration in range(2):
         global_innovation_number, global_node_number = do_mutations(network_mate, global_innovation_number,
                                                                     global_node_number)
 
@@ -337,7 +343,7 @@ if __name__ == '__main__':
 
     child = network_test.crossover(network_mate, name="Child")
     print(child)
-    print([child.get_output([random(), random()]) for _ in range(10)])
+    print([child.get_output([-1, 0.5]) for _ in range(2)])
     if True or input("Render Child? (y/n) ") == 'y':
         child.render()
 

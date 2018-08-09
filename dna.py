@@ -10,7 +10,7 @@ from typing import Tuple, List
 # Project imports
 from functions import ignore
 from innovation import Innovation
-from node import HiddenNode, InputNode, OutputNode
+from node import *
 
 
 class Dna:

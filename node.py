@@ -7,14 +7,18 @@
 from math import e
 from typing import Union
 
-# String representation
-
+# String representation of a node
 STRING = "{}: {} (Layer {})"
+
+
+# NEAT paper activation function
+def neat_sigmoid(x: float) -> float:
+    return 1.0 / (1.0 + pow(e, -4.9 * x))
 
 
 # Default activation function
 def sigmoid(x: float) -> float:
-    return 1.0 / (1.0 + pow(e, -4.9 * x))
+    return 1.0 / (1.0 + pow(e, -x))
 
 
 class HiddenNode:
