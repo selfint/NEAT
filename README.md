@@ -1,4 +1,5 @@
-# NEAT
+# BETTER VERSION IN CREATURES REPO
+## NEAT
 
 My name is Tom, and I have a great interest in AI algorithms,
 specifically in genetic algorithms, and their implementations.
